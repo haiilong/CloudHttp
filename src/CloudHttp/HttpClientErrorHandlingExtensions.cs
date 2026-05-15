@@ -123,7 +123,7 @@ public static class HttpClientErrorHandlingExtensions
 
     /// <summary>
     /// GETs a stream or returns <see cref="Stream.Null"/> on failure. Caller cannot distinguish
-    /// "empty response" from "failed" — check <see cref="Stream.Length"/> only after reading;
+    /// "empty response" from "failed", check <see cref="Stream.Length"/> only after reading;
     /// for hard errors rely on the log.
     /// </summary>
     public static async Task<Stream> GetStreamWithErrorHandlingAsync(

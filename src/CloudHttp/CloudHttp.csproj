@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <RootNamespace>CloudHttp</RootNamespace>
+    <AssemblyName>CloudHttp</AssemblyName>
+
+    <PackageId>haiilong.http.extensions</PackageId>
+    <Version>0.1.0</Version>
+    <Description>Cloud-native HttpClient extensions for .NET microservices. Distributes connections across multiple HttpClient instances to spread load over Kubernetes pods backing a single Service, provides production-ready SocketsHttpHandler defaults, error-handling JSON verb helpers, and a small route-template builder. Composes with Microsoft.Extensions.Http.Resilience (Polly v8) for retry/circuit-breaker.</Description>
+    <PackageTags>http;httpclient;kubernetes;k8s;load-balancing;client-distribution;round-robin;cloud-native;sockets-http-handler;aot;resilience</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

@@ -298,6 +298,7 @@ The library declares `IsAotCompatible=true`. JSON verb helpers carry `RequiresUn
 - [`docs/client-distribution.md`](docs/client-distribution.md) - round-robin vs weighted vs health-aware tradeoffs.
 - [`docs/cloud-defaults.md`](docs/cloud-defaults.md) - every `ConfigureForCloud()` setting and why.
 - [`docs/with-resilience.md`](docs/with-resilience.md) - stacking with `Microsoft.Extensions.Http.Resilience`.
+- [`samples/CloudHttp.Sample/README.md`](samples/CloudHttp.Sample/README.md) - runnable Docker Compose demo that shows backend rotation.
 
 ## License
 

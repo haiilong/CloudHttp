@@ -1,0 +1,26 @@
+services:
+  upstream:
+    build:
+      context: ../..
+      dockerfile: samples/CloudHttp.Sample/Dockerfile
+    command: ["server"]
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      FAIL_EVERY: "${FAIL_EVERY:-0}"
+    expose:
+      - "8080"
+
+  client:
+    build:
+      context: ../..
+      dockerfile: samples/CloudHttp.Sample/Dockerfile
+    command: ["client"]
+    depends_on:
+      - upstream
+    environment:
+      UPSTREAM_URL: "http://upstream:8080"
+      CLIENT_COUNT: "${CLIENT_COUNT:-8}"
+      REQUESTS: "${REQUESTS:-48}"
+      DELAY_MS: "${DELAY_MS:-100}"
+      DISTRIBUTION_MODE: "${DISTRIBUTION_MODE:-RoundRobin}"
+      ENDPOINT: "${ENDPOINT:-/whoami}"

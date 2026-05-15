@@ -53,12 +53,6 @@ Targets `net8.0` and `net10.0` (if you use `net9.0`, the `net8.0` build is picke
 
 ## Quickstart
 
-Install CloudHttp:
-
-```sh
-dotnet add package haiilong.http.extensions
-```
-
 For retry, timeout, and circuit breaker policy, also install Microsoft's resilience package:
 
 ```sh

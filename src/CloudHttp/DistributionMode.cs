@@ -1,6 +1,5 @@
 ﻿namespace CloudHttp;
 
-
 /// <summary>
 /// Strategy used to pick which underlying <see cref="HttpClient"/> serves the next request.
 /// </summary>

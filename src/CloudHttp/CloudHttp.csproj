@@ -6,7 +6,7 @@
     <AssemblyName>CloudHttp</AssemblyName>
 
     <PackageId>haiilong.http.extensions</PackageId>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Description>Cloud-native HttpClient extensions for .NET microservices. Distributes connections across multiple HttpClient instances to spread load over Kubernetes pods backing a single Service, provides production-ready SocketsHttpHandler defaults, error-handling JSON verb helpers, and a small route-template builder. Composes with Microsoft.Extensions.Http.Resilience (Polly v8) for retry/circuit-breaker.</Description>
     <PackageTags>http;httpclient;kubernetes;k8s;load-balancing;client-distribution;round-robin;cloud-native;sockets-http-handler;aot;resilience</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

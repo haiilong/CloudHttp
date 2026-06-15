@@ -75,7 +75,8 @@ public static class DistributedHttpClientExtensions
                     configureClient?.Invoke(c);
                 })
                 .ConfigurePrimaryHttpMessageHandler(() =>
-                    new SocketsHttpHandler().ConfigureForCloud(configurePrimaryHandler));
+                    new SocketsHttpHandler().ConfigureForCloud(configurePrimaryHandler))
+                .SetHandlerLifetime(Timeout.InfiniteTimeSpan);
             configureBuilder?.Invoke(builder);
         }
 

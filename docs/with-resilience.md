@@ -62,7 +62,7 @@ That number surprises people. Keep the timeout budget small enough that the wors
 
 ## Mutating JSON helpers do not auto-rotate
 
-`PostAsync`, `PutAsync`, `PatchAsync`, and `DeleteAsync` on `DistributedHttpClient` do not rotate automatically. A timeout or 503 does not prove the server failed to process the request. Replaying a charge, shipment, or write can duplicate side effects.
+The write helpers on `DistributedHttpClient` do not rotate automatically — neither the deserialising forms (`PostAsync`, `PutAsync`, `PatchAsync`, `DeleteAsync<T>`) nor the raw-response forms (`PostAsJsonAsync`, `PutAsJsonAsync`, `PatchAsJsonAsync`, non-generic `DeleteAsync`). A timeout or 503 does not prove the server failed to process the request. Replaying a charge, shipment, or write can duplicate side effects.
 
 If the operation is safe to replay, make that explicit:
 

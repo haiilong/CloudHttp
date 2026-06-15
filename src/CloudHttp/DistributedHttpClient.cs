@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using CloudHttp.Internal;
@@ -79,7 +80,7 @@ public sealed class DistributedHttpClient
         ArgumentNullException.ThrowIfNull(path);
         using var response = await ExecuteAsync((c, t) => c.GetAsync(path, HttpCompletionOption.ResponseHeadersRead, t), ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<TResponse>(_jsonOptions, ct).ConfigureAwait(false);
+        return await DeserializeAsync<TResponse>(response, ct).ConfigureAwait(false);
     }
 
     /// <summary>POSTs <paramref name="request"/> as JSON to <paramref name="path"/>; returns the deserialised JSON body.</summary>
@@ -90,7 +91,7 @@ public sealed class DistributedHttpClient
         ArgumentNullException.ThrowIfNull(path);
         using var response = await ExecuteAsync((c, t) => c.PostAsJsonAsync(path, request, _jsonOptions, t), ct, allowRotation: false).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<TResponse>(_jsonOptions, ct).ConfigureAwait(false);
+        return await DeserializeAsync<TResponse>(response, ct).ConfigureAwait(false);
     }
 
     /// <summary>PUTs <paramref name="request"/> as JSON to <paramref name="path"/>; returns the deserialised JSON body.</summary>
@@ -101,7 +102,7 @@ public sealed class DistributedHttpClient
         ArgumentNullException.ThrowIfNull(path);
         using var response = await ExecuteAsync((c, t) => c.PutAsJsonAsync(path, request, _jsonOptions, t), ct, allowRotation: false).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<TResponse>(_jsonOptions, ct).ConfigureAwait(false);
+        return await DeserializeAsync<TResponse>(response, ct).ConfigureAwait(false);
     }
 
     /// <summary>PATCHes <paramref name="request"/> as JSON to <paramref name="path"/>; returns the deserialised JSON body.</summary>
@@ -112,7 +113,7 @@ public sealed class DistributedHttpClient
         ArgumentNullException.ThrowIfNull(path);
         using var response = await ExecuteAsync((c, t) => c.PatchAsJsonAsync(path, request, _jsonOptions, t), ct, allowRotation: false).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<TResponse>(_jsonOptions, ct).ConfigureAwait(false);
+        return await DeserializeAsync<TResponse>(response, ct).ConfigureAwait(false);
     }
 
     /// <summary>DELETEs <paramref name="path"/>; returns the deserialised JSON body (if any).</summary>
@@ -123,6 +124,73 @@ public sealed class DistributedHttpClient
         ArgumentNullException.ThrowIfNull(path);
         using var response = await ExecuteAsync((c, t) => c.DeleteAsync(path, t), ct, allowRotation: false).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
+        return await DeserializeAsync<TResponse>(response, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// POSTs <paramref name="request"/> as JSON to <paramref name="path"/> and returns the raw
+    /// <see cref="HttpResponseMessage"/> without deserialising or calling
+    /// <see cref="HttpResponseMessage.EnsureSuccessStatusCode"/>. Does <em>not</em> auto-rotate
+    /// on a transient failure, replaying a write can duplicate side effects. The caller owns the
+    /// returned message and must dispose it.
+    /// </summary>
+    [RequiresUnreferencedCode("JSON serialization may require types that cannot be statically analyzed.")]
+    [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
+    public Task<HttpResponseMessage> PostAsJsonAsync<TRequest>(string path, TRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        return ExecuteAsync((c, t) => c.PostAsJsonAsync(path, request, _jsonOptions, t), ct, allowRotation: false);
+    }
+
+    /// <summary>
+    /// PUTs <paramref name="request"/> as JSON to <paramref name="path"/> and returns the raw
+    /// <see cref="HttpResponseMessage"/>. Does <em>not</em> auto-rotate. The caller owns the
+    /// returned message and must dispose it.
+    /// </summary>
+    [RequiresUnreferencedCode("JSON serialization may require types that cannot be statically analyzed.")]
+    [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
+    public Task<HttpResponseMessage> PutAsJsonAsync<TRequest>(string path, TRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        return ExecuteAsync((c, t) => c.PutAsJsonAsync(path, request, _jsonOptions, t), ct, allowRotation: false);
+    }
+
+    /// <summary>
+    /// PATCHes <paramref name="request"/> as JSON to <paramref name="path"/> and returns the raw
+    /// <see cref="HttpResponseMessage"/>. Does <em>not</em> auto-rotate. The caller owns the
+    /// returned message and must dispose it.
+    /// </summary>
+    [RequiresUnreferencedCode("JSON serialization may require types that cannot be statically analyzed.")]
+    [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
+    public Task<HttpResponseMessage> PatchAsJsonAsync<TRequest>(string path, TRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        return ExecuteAsync((c, t) => c.PatchAsJsonAsync(path, request, _jsonOptions, t), ct, allowRotation: false);
+    }
+
+    /// <summary>
+    /// DELETEs <paramref name="path"/> and returns the raw <see cref="HttpResponseMessage"/>
+    /// without reading or deserialising the body. Does <em>not</em> auto-rotate. The caller owns
+    /// the returned message and must dispose it. This overload is AOT/trim-safe because it does
+    /// no JSON work.
+    /// </summary>
+    public Task<HttpResponseMessage> DeleteAsync(string path, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        return ExecuteAsync((c, t) => c.DeleteAsync(path, t), ct, allowRotation: false);
+    }
+
+    /// <summary>
+    /// Reads <paramref name="response"/> as JSON, returning <see langword="default"/> for an
+    /// empty body (<see cref="HttpStatusCode.NoContent"/> or a zero <c>Content-Length</c>) instead
+    /// of throwing, so no-body verbs such as DELETE do not surface a spurious <see cref="JsonException"/>.
+    /// </summary>
+    [RequiresUnreferencedCode("JSON serialization may require types that cannot be statically analyzed.")]
+    [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
+    private async Task<TResponse?> DeserializeAsync<TResponse>(HttpResponseMessage response, CancellationToken ct)
+    {
+        if (response.StatusCode == HttpStatusCode.NoContent || response.Content.Headers.ContentLength == 0)
+            return default;
         return await response.Content.ReadFromJsonAsync<TResponse>(_jsonOptions, ct).ConfigureAwait(false);
     }
 

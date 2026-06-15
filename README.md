@@ -129,7 +129,22 @@ public sealed class InventoryService(
 
 `GetAsync` can rotate once on a transient status or transient exception. The mutating JSON helpers (`PostAsync`, `PutAsync`, `PatchAsync`, `DeleteAsync`) do not auto-rotate. That is intentional. A timed-out `POST` may already have created the row or charged the card.
 
-If a write operation is safe to replay, make that part of your API contract and use `SendAsync` explicitly:
+### Inspecting the raw response on a write
+
+When you want to send a write and inspect the `HttpResponseMessage` yourself (status code, `Location` header, no body, etc.) instead of deserialising, use the raw-response helpers. They return the `HttpResponseMessage` directly, do not call `EnsureSuccessStatusCode`, and — like the deserialising write helpers — never auto-rotate:
+
+```csharp
+public async Task<Uri?> CreateOrderAsync(Order order, CancellationToken ct)
+{
+    using var response = await http.PostAsJsonAsync("/orders", order, ct);
+    response.EnsureSuccessStatusCode();
+    return response.Headers.Location;
+}
+```
+
+`PostAsJsonAsync`, `PutAsJsonAsync`, and `PatchAsJsonAsync` cover the JSON write verbs. A non-generic `DeleteAsync(path, ct)` returns the raw response without touching the body, so it is also AOT/trim-safe. You own the returned message and must dispose it.
+
+If a write operation is safe to replay, make that part of your API contract and use `SendAsync` explicitly (this is the only write path that rotates, and only because you opted in):
 
 ```csharp
 public Task<HttpResponseMessage> ChargeAsync(ChargeRequest body, string idempotencyKey, CancellationToken ct)
@@ -285,7 +300,7 @@ If you call slow public APIs over the internet, tune these values. The defaults 
 
 ## AOT / trim
 
-The library declares `IsAotCompatible=true`. JSON verb helpers carry `RequiresUnreferencedCode` / `RequiresDynamicCode` because they use reflection-based `System.Text.Json`. For AOT consumers, use `DistributedHttpClient.SendAsync(factory, ct)` and deserialize with your own `JsonTypeInfo<T>` pipeline.
+The library declares `IsAotCompatible=true`. JSON verb helpers carry `RequiresUnreferencedCode` / `RequiresDynamicCode` because they use reflection-based `System.Text.Json`. For AOT consumers, use `DistributedHttpClient.SendAsync(factory, ct)` or the non-generic `DistributedHttpClient.DeleteAsync(path, ct)` (neither does any JSON work) and deserialize with your own `JsonTypeInfo<T>` pipeline.
 
 ## Documentation
 
@@ -293,6 +308,7 @@ The library declares `IsAotCompatible=true`. JSON verb helpers carry `RequiresUn
 - [`docs/cloud-defaults.md`](docs/cloud-defaults.md) - every `ConfigureForCloud()` setting and why.
 - [`docs/with-resilience.md`](docs/with-resilience.md) - stacking with `Microsoft.Extensions.Http.Resilience`.
 - [`samples/CloudHttp.Sample/README.md`](samples/CloudHttp.Sample/README.md) - runnable Docker Compose demo that shows backend rotation.
+- [`CHANGELOG.md`](CHANGELOG.md) - release history.
 
 ## License
 

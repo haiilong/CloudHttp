@@ -96,7 +96,7 @@ CloudHttp performs at most one extra attempt, and only for operations that allow
 - `DistributedHttpClient.GetAsync<T>()`
 - `DistributedHttpClient.SendAsync(factory, ct)`
 
-The JSON mutating helpers (`PostAsync`, `PutAsync`, `PatchAsync`, `DeleteAsync`) do not auto-rotate. Replaying a mutating request after a timeout or 5xx can duplicate side effects if the first attempt reached the server. If your operation is idempotent, add an idempotency key and use `SendAsync(...)` to opt into replay explicitly.
+The JSON mutating helpers do not auto-rotate. This covers both the deserialising helpers (`PostAsync`, `PutAsync`, `PatchAsync`, `DeleteAsync<T>`) and the raw-response helpers (`PostAsJsonAsync`, `PutAsJsonAsync`, `PatchAsJsonAsync`, and the non-generic `DeleteAsync`). Replaying a mutating request after a timeout or 5xx can duplicate side effects if the first attempt reached the server. If your operation is idempotent, add an idempotency key and use `SendAsync(...)` to opt into replay explicitly.
 
 Two transients in a row across two different clients surface as the second-attempt response or exception. If you want retries with jitter, configure `AddStandardResilienceHandler()` inside `configureBuilder`.
 

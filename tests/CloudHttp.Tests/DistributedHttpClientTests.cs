@@ -301,6 +301,109 @@ public class DistributedHttpClientTests
         selector.Select(null).Should().Be(1);
     }
 
+    [Fact]
+    public async Task PostAsJsonAsync_returns_raw_response_without_ensuring_success()
+    {
+        var h0 = StubHttpMessageHandler.ForStatus(HttpStatusCode.Created, "{\"name\":\"created\"}");
+        var h1 = StubHttpMessageHandler.ForStatus(HttpStatusCode.OK);
+        var clients = new[] { ClientFor(h0), ClientFor(h1) };
+        var sut = Build(clients, new RoundRobinSelector(2));
+
+        using var response = await sut.PostAsJsonAsync("/x", new Sample { Name = "req" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        h0.InvocationCount.Should().Be(1);
+        h1.InvocationCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task PostAsJsonAsync_does_not_rotate_on_transient_status()
+    {
+        var h0 = StubHttpMessageHandler.ForStatus(HttpStatusCode.ServiceUnavailable);
+        var h1 = StubHttpMessageHandler.ForStatus(HttpStatusCode.OK);
+        var clients = new[] { ClientFor(h0), ClientFor(h1) };
+        var sut = Build(clients, new RoundRobinSelector(2));
+
+        using var response = await sut.PostAsJsonAsync("/x", new Sample { Name = "req" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        h0.InvocationCount.Should().Be(1);
+        h1.InvocationCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task PostAsJsonAsync_rethrows_transient_exception_without_rotation()
+    {
+        var h0 = new StubHttpMessageHandler((_, _) => throw new HttpRequestException("down"));
+        var h1 = StubHttpMessageHandler.ForStatus(HttpStatusCode.OK);
+        var clients = new[] { ClientFor(h0), ClientFor(h1) };
+        var sut = Build(clients, new RoundRobinSelector(2));
+
+        var act = async () => await sut.PostAsJsonAsync("/x", new Sample { Name = "req" });
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+        h1.InvocationCount.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData("PUT")]
+    [InlineData("PATCH")]
+    public async Task Raw_json_write_helpers_do_not_rotate(string verb)
+    {
+        var h0 = StubHttpMessageHandler.ForStatus(HttpStatusCode.BadGateway);
+        var h1 = StubHttpMessageHandler.ForStatus(HttpStatusCode.OK);
+        var clients = new[] { ClientFor(h0), ClientFor(h1) };
+        var sut = Build(clients, new RoundRobinSelector(2));
+
+        using var response = verb switch
+        {
+            "PUT" => await sut.PutAsJsonAsync("/x", new Sample { Name = "req" }),
+            "PATCH" => await sut.PatchAsJsonAsync("/x", new Sample { Name = "req" }),
+            _ => throw new InvalidOperationException(),
+        };
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        h0.InvocationCount.Should().Be(1);
+        h1.InvocationCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_raw_returns_response_and_tolerates_no_content()
+    {
+        var h0 = StubHttpMessageHandler.ForStatus(HttpStatusCode.NoContent);
+        var clients = new[] { ClientFor(h0) };
+        var sut = Build(clients, new RoundRobinSelector(1));
+
+        using var response = await sut.DeleteAsync("/x");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        h0.InvocationCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetAsync_returns_default_on_no_content_body()
+    {
+        var h0 = StubHttpMessageHandler.ForStatus(HttpStatusCode.NoContent);
+        var clients = new[] { ClientFor(h0) };
+        var sut = Build(clients, new RoundRobinSelector(1));
+
+        var result = await sut.GetAsync<Sample>("/x");
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DeleteAsync_generic_returns_default_on_no_content_body()
+    {
+        var h0 = StubHttpMessageHandler.ForStatus(HttpStatusCode.NoContent);
+        var clients = new[] { ClientFor(h0) };
+        var sut = Build(clients, new RoundRobinSelector(1));
+
+        var result = await sut.DeleteAsync<Sample>("/x");
+
+        result.Should().BeNull();
+    }
+
     private sealed class Sample
     {
         public string? Name { get; set; }

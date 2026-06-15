@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -179,6 +180,8 @@ public static class HttpClientErrorHandlingExtensions
         {
             using var response = await send(client, ct).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
+            if (response.StatusCode == HttpStatusCode.NoContent || response.Content.Headers.ContentLength == 0)
+                return defaultResponse;
             return await response.Content.ReadFromJsonAsync<TResponse>(options, ct).ConfigureAwait(false)
                 ?? defaultResponse;
         }

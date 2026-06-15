@@ -123,6 +123,19 @@ public class HttpClientErrorHandlingExtensionsTests
     }
 
     [Fact]
+    public async Task DeleteWithErrorHandling_returns_default_on_no_content_without_logging_error()
+    {
+        var captured = new CapturedLogger();
+        var client = ClientFor((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent)));
+
+        var result = await client.DeleteWithErrorHandlingAsync("/x", new Payload("fb"), captured);
+
+        // A 204 is a success, not a deserialisation failure: return the default and stay quiet.
+        result.Name.Should().Be("fb");
+        captured.Entries.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task GetStreamWithErrorHandling_returns_stream_on_success()
     {
         var bodyBytes = "hello"u8.ToArray();
